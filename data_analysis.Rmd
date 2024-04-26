@@ -1,0 +1,101 @@
+---
+title: "data_analysis"
+author: "Yinuo Chen"
+date: "2024-04-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r datasets import}
+employee <- read_dta("EmployeeStatus.dta")
+employee_char <- read_dta("EmployeeCharacteristics.dta")
+quits <- read_dta("Quits.dta")
+quits_d <- read_dta("QuitDate.dta")
+attitude <- read_dta("Attitudes.dta")
+performance_p <- read_dta("Performance_Panel.dta")
+performance <- read_dta("Performance.dta")
+# create a list for all 7 datasets
+data_list <- list(
+  employee = employee,
+  employee_char = employee_char,
+  quits = quits,
+  quits_d = quits_d,
+  attitude = attitude,
+  performance_p = performance_p,
+  performance = performance
+)
+```
+
+```{r data summary}
+# loop through and show summary of all 7 datasets
+for (dataset_name in names(data_list)) {
+  cat(dataset_name, ":\n")
+  print(summary(data_list[[dataset_name]]))
+  cat("\n")
+}
+```
+
+```{r scatter plot for each var}
+plot_scatter_first_column <- function(data, dataset_name) {
+  numeric_vars <- sapply(data, is.numeric)
+  numeric_names <- names(data)[numeric_vars]
+
+  if (length(numeric_names) > 1) {
+    x_axis <- numeric_names[1]  # use personid as the x-axis
+    
+    for (y_axis in numeric_names[-1]) {
+      plot <- ggplot(data, aes_string(x = x_axis, y = y_axis)) +
+        geom_point(alpha = 0.5) + 
+        labs(title = paste("Scatter Plot of", y_axis, "vs", x_axis, "in", dataset_name),
+             x = x_axis, y = y_axis) +
+        theme_minimal()
+      
+      print(plot) 
+    }
+  } else {
+    cat("No enough numeric variables.")
+  }
+}
+# loop through each dataset and generate plots
+for (dataset_name in names(data_list)) {
+  cat("Generating plots for", dataset_name, "\n")
+  plot_scatter_first_column(data_list[[dataset_name]], dataset_name)
+}
+
+```
+
+```{r remove problematic data}
+# dataset2. employee_char
+data_list[[2]] <- data_list[[2]] %>%
+  mutate(
+    prior_experience = if_else(prior_experience < 0, NA, prior_experience),
+    age = if_else(age < 0, NA, age),
+    tenure = if_else(tenure < 0, NA, tenure)
+  )
+summary(data_list[[2]]) # double check the summary
+
+# dataset6. performance_p
+data_list[[6]] <- data_list[[6]] %>%
+  mutate(
+    performance_score = ifelse(performance_score > 100, NA, performance_score),
+    total_monthly_calls = ifelse(total_monthly_calls < 0, NA, total_monthly_calls),
+    calls_per_hour = ifelse(calls_per_hour > 100, NA, calls_per_hour)
+  )
+summary(data_list[[6]])
+
+# dataset7. performance
+data_list[[7]] <- data_list[[7]] %>%
+  mutate(
+    performance_score = if_else(performance_score > 100, NA, performance_score),
+    total_monthly_calls = if_else(total_monthly_calls < 0, NA, total_monthly_calls),
+    calls_per_hour = if_else(calls_per_hour > 35, NA, calls_per_hour)
+  )
+summary(data_list[[7]])
+
+```
