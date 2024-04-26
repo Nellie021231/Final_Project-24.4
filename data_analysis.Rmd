@@ -26,7 +26,7 @@ data_list <- list(
   employee_char = employee_char,
   quits = quits,
   quits_d = quits_d,
-  attitude = attitude,
+  attitude = attitude, 
   performance_p = performance_p,
   performance = performance
 )
@@ -101,13 +101,58 @@ summary(data_list[[7]])
 ```
 
 ```{r WFH and satisfaction levels}
+# merge two datasets, employee and attitude
+satis_lev <- inner_join(data_list[[1]], data_list[[5]], by = "personid")
+sorted_satis_level <- arrange(satis_lev, personid)
+head(sorted_satis_level) # preview the data
+
+# create dummy variables and interaction terms
+sorted_satis_level1 <- sorted_satis_level %>%
+  mutate(time1 = as.numeric(surveyno == 1),
+         time2 = as.numeric(surveyno == 2),
+         time3 = as.numeric(surveyno == 3),
+         time4 = as.numeric(surveyno == 4),
+         time5 = as.numeric(surveyno == 5)) %>%
+  mutate(time1_treat = time1 * treatment,
+         time2_treat = time2 * treatment,
+         time3_treat = time3 * treatment,
+         time4_treat = time4 * treatment,
+         time5_treat = time5 * treatment)
+# run the OLS regression
+model1 <- lm(satisfaction ~ time1_treat + time2_treat + time3_treat + time4_treat + time5_treat, data = sorted_satis_level1)
+summary(model1)
 
 ```
 
 ```{r WFH and performance}
+# merge three datasets, employee, employee_char and performance
+performance <- data_list[[1]] %>%
+  left_join(data_list[[2]], by = "personid") %>%
+  left_join(data_list[[7]], by = "personid") %>%
+  arrange(performance)
+head(performance) # preview the data
 
+# create an interaction variable
+performance$post_treatment <- performance$post * performance$treatment
+
+# run OLS regression
+model2 <- lm(performance_score ~ prior_experience + age + tenure + bonus + post_treatment, data = performance)
+summary(model2)
 ```
 
 ```{r WFH and retention}
+# merge three datasets, employee, employee_char and quits
+retention <- data_list[[1]] %>%
+  left_join(data_list[[2]], by = "personid") %>%
+  left_join(data_list[[3]], by = "personid")
 
+# Sort by personid in ascending order
+sorted_retention <- retention %>%
+  arrange(personid)
+head(sorted_retention) # preview the data
+
+# conduct a logistic regression
+model3 <- glm(quitjob ~  treatment + prior_experience + age + tenure + basewage + bonus + grosswage + costofcommute + rental + male + married + high_school, data = sorted_retention, family = binomial)
+summary(model3)
 ```
+
