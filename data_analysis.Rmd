@@ -99,3 +99,15 @@ data_list[[7]] <- data_list[[7]] %>%
 summary(data_list[[7]])
 
 ```
+
+```{r WFH and satisfaction levels}
+
+```
+
+```{r WFH and performance}
+
+```
+
+```{r WFH and retention}
+
+```
